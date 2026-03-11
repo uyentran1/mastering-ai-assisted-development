@@ -1,0 +1,61 @@
+# Video 6.2: CI/CD Integration
+#
+# This GitHub Action identifies test coverage gaps and optionally
+# uses AI to generate missing tests. Demonstrates the "test coverage
+# gap filler" pattern from the video.
+#
+# Guardrails:
+# - Generated tests are committed to a branch, not auto-merged
+# - Human review required before merging AI-generated tests
+# - Cost controls via max iterations
+# - Secrets stored securely
+
+name: Test Coverage Gap Filler
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Run tests with coverage
+        run: npm test -- --coverage --coverageReporters=json-summary
+        continue-on-error: true
+
+      - name: Check coverage threshold
+        id: coverage
+        run: |
+          echo "In production, this step would:"
+          echo "  1. Parse coverage/coverage-summary.json"
+          echo "  2. Identify files below 80% line coverage"
+          echo "  3. List uncovered functions and branches"
+          echo "  4. Optionally trigger AI test generation for gaps"
+
+      - name: Generate missing tests (placeholder)
+        if: steps.coverage.outputs.gaps == 'true'
+        run: |
+          echo "In production, this step would:"
+          echo "  1. Send uncovered code to Claude API"
+          echo "  2. Ask AI to generate tests for specific uncovered paths"
+          echo "  3. Create a new branch with the generated tests"
+          echo "  4. Open a PR for human review"
+          echo ""
+          echo "Key principle: AI GENERATES tests, humans REVIEW and merge"

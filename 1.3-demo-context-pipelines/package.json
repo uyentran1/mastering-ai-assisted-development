@@ -1,0 +1,13 @@
+{
+  "name": "demo-context-pipelines",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Course 2, Video 1.3: Automated Context Pipelines - Pre-commit hooks, conditional rules, auto-generated indexes",
+  "scripts": {
+    "generate-index": "node scripts/generate-index.mjs",
+    "prepare": "echo 'Run: npx husky install (if using git hooks)'"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
