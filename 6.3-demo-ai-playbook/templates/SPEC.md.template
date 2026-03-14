@@ -1,0 +1,26 @@
+# Project Spec: [PROJECT NAME]
+
+## Technology Constraints
+- **Framework**: [e.g., React 18, Next.js 15, Vue 3]
+- **Language**: [e.g., TypeScript strict mode]
+- **Styling**: [e.g., Tailwind CSS, CSS Modules]
+- **Dependencies**: [list specific libraries and versions]
+- **No**: [explicitly exclude anything you don't want]
+
+## Functional Requirements
+- [What should the application DO? List the core behaviors.]
+- [Be specific about WHAT, flexible about HOW.]
+- [Include interaction model: clicks, hover, keyboard, etc.]
+
+## Visual Requirements
+- [Color palette, typography, layout constraints]
+- [Responsive breakpoints]
+- [Animation and transition expectations]
+- [Reference designs or inspiration (if any)]
+
+## Performance Targets
+- [Load time, bundle size, frame rate expectations]
+- [e.g., "60 FPS animations", "< 200KB bundle", "< 2s initial load"]
+
+## Out of Scope
+- [What this project is NOT — helps Claude stay focused]

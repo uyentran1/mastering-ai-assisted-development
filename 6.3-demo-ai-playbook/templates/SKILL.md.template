@@ -1,0 +1,41 @@
+# Skill: [SKILL NAME]
+
+## Purpose
+
+When to activate this skill:
+- [Trigger condition 1: e.g., "When creating React components"]
+- [Trigger condition 2: e.g., "When the user asks for UI work"]
+
+## Principles
+
+Core expertise this skill encodes:
+
+1. **[Principle Name]**: [What to do and why]
+2. **[Principle Name]**: [What to do and why]
+3. **[Principle Name]**: [What to do and why]
+
+Start with 3-5 principles. You can always add more later.
+
+## Patterns
+
+Code examples showing the RIGHT way:
+
+```typescript
+// Good: [describe what this demonstrates]
+```
+
+## Anti-Patterns
+
+Code examples showing the WRONG way:
+
+```typescript
+// Bad: [describe what to avoid and why]
+```
+
+## Checklist
+
+Before considering the work done, verify:
+
+- [ ] [Quality check 1]
+- [ ] [Quality check 2]
+- [ ] [Quality check 3]

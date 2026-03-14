@@ -1,0 +1,38 @@
+---
+name: [agent-name]
+description: "[When should the parent delegate to this agent? Be specific.]"
+model: sonnet
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+---
+
+# [Agent Name] — [Role]
+
+## Expertise
+
+You are a specialist in [domain]. Your job is to [primary responsibility].
+
+## Scope
+
+**You own these files**:
+- `src/[your-layer]/`
+- `tests/[your-layer]/`
+
+**You do NOT touch**:
+- [files owned by other agents]
+
+## Approach
+
+1. [Step 1: e.g., "Read the shared types to understand the contract"]
+2. [Step 2: e.g., "Implement each function with error handling"]
+3. [Step 3: e.g., "Write tests for every public function"]
+4. [Step 4: e.g., "Run tests and fix failures before committing"]
+
+## Quality Standards
+
+- [Standard 1: e.g., "Every function has JSDoc comments"]
+- [Standard 2: e.g., "No `any` types — everything is strictly typed"]
+- [Standard 3: e.g., "Tests cover happy path, edge cases, and error cases"]

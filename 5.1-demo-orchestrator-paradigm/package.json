@@ -1,0 +1,21 @@
+{
+  "name": "mastering-ai-orchestrator-paradigm",
+  "version": "1.0.0",
+  "description": "Conceptual introduction to the orchestrator paradigm: from single-agent to multi-agent orchestration in AI-assisted development",
+  "main": "README.md",
+  "scripts": {
+    "watch": "echo 'Watch the video: From Conductor to Orchestrator'",
+    "next": "echo 'Ready? Move to 4.2: Demo Subagents'"
+  },
+  "keywords": [
+    "orchestrator-paradigm",
+    "multi-agent",
+    "ai-assisted-development",
+    "agent-orchestration",
+    "subagents",
+    "agent-swarms",
+    "autonomous-agents"
+  ],
+  "author": "Mastering AI-Assisted Development Course",
+  "license": "MIT"
+}
