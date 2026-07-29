@@ -1,17 +1,15 @@
 /**
  * Chapter 2.2: Building Custom Integrations
  *
- * TODO: Implement a custom MCP server that exposes internal tools to AI coding agents.
- *
- * This server should implement three high-ROI use cases:
- * 1. Feature Flags API — Read and list feature flag status
- * 2. Service Health Monitor — Check health status of internal services
- * 3. API Documentation — Lookup available endpoints and schemas
+ * A custom MCP server that exposes internal tools to AI coding agents.
+ * This demonstrates three high-ROI use cases:
+ *   1. Internal API querying (feature flags, user data)
+ *   2. Monitoring integration (error rates, health)
+ *   3. Documentation lookup
  *
  * To use with Claude Code, add to your MCP config:
  *   { "command": "node", "args": ["dist/server.js"] }
  */
-
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -21,32 +19,77 @@ const server = new McpServer({
   version: '1.0.0',
 });
 
-// --- Simulated internal data (replace with real API calls) ---
+// --- Simulated internal data ---
 
 const featureFlags: Record<string, { enabled: boolean; rolloutPercent: number; description: string }> = {
-  // TODO: Add feature flags here
+  'new-checkout': { enabled: true, rolloutPercent: 50, description: 'New checkout flow with Stripe Elements' },
+  'dark-mode': { enabled: false, rolloutPercent: 0, description: 'Dark mode UI theme' },
+  'ai-recommendations': { enabled: true, rolloutPercent: 100, description: 'AI-powered product recommendations' },
 };
 
 const serviceHealth: Record<string, { status: string; latencyMs: number; errorRate: number }> = {
-  // TODO: Add services here
+  'api-gateway': { status: 'healthy', latencyMs: 45, errorRate: 0.01 },
+  'payment-service': { status: 'healthy', latencyMs: 120, errorRate: 0.02 },
+  'notification-service': { status: 'degraded', latencyMs: 890, errorRate: 0.15 },
 };
 
-const apiDocumentation: Record<string, { endpoint: string; method: string; description: string }> = {
-  // TODO: Add API endpoints here
-};
+// --- Tool 1: Feature Flag Reader ---
 
-// --- TODO: Implement tool handlers using server.registerTool() ---
+server.registerTool(
+  'get-feature-flag',
+  {
+    description: 'Get the status of a feature flag by name',
+    inputSchema: { flagName: z.string().describe('The feature flag name (e.g., "new-checkout")') },
+  },
+  async ({ flagName }) => {
+    const flag = featureFlags[flagName];
+    if (!flag) {
+      return { content: [{ type: 'text' as const, text: `Feature flag "${flagName}" not found. Available: ${Object.keys(featureFlags).join(', ')}` }] };
+    }
+    return {
+      content: [{ type: 'text' as const, text: JSON.stringify(flag, null, 2) }],
+    };
+  },
+);
 
-// Tool 1: Get Feature Flag Status
-// Tool 2: Check Service Health
-// Tool 3: List Available Endpoints
+// --- Tool 2: Service Health Monitor ---
+
+server.registerTool(
+  'check-service-health',
+  {
+    description: 'Check the health status of internal services',
+    inputSchema: { serviceName: z.string().optional().describe('Specific service name, or omit for all services') },
+  },
+  async ({ serviceName }) => {
+    if (serviceName) {
+      const health = serviceHealth[serviceName];
+      if (!health) {
+        return { content: [{ type: 'text' as const, text: `Service "${serviceName}" not found. Available: ${Object.keys(serviceHealth).join(', ')}` }] };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ [serviceName]: health }, null, 2) }] };
+    }
+    return { content: [{ type: 'text' as const, text: JSON.stringify(serviceHealth, null, 2) }] };
+  },
+);  
+
+// --- Tool 3: List All Feature Flags ---
+
+server.registerTool(
+  'list-feature-flags',
+  {
+    description: 'List all available feature flags and their statuses',
+    inputSchema: {},
+  },
+  async () => {
+    return { content: [{ type: 'text' as const, text: JSON.stringify(featureFlags, null, 2) }] };
+  },
+);
 
 // --- Start the server ---
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('MCP server started');
 }
 
 main().catch(console.error);

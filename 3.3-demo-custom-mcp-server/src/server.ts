@@ -70,7 +70,7 @@ server.registerTool(
     }
     return { content: [{ type: 'text' as const, text: JSON.stringify(serviceHealth, null, 2) }] };
   },
-);
+);  
 
 // --- Tool 3: List All Feature Flags ---
 
