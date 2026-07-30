@@ -15,6 +15,14 @@
 
 import { ImportReport } from './types';
 
+/** Format a ratio as a one-decimal percentage, or 'n/a' when the base is zero. */
+function formatRate(numerator: number, denominator: number): string {
+  if (denominator <= 0) {
+    return 'n/a';
+  }
+  return `${((numerator / denominator) * 100).toFixed(1)}%`;
+}
+
 export function generateReport(stats: {
   totalParsed: number;
   validCount: number;
@@ -22,6 +30,27 @@ export function generateReport(stats: {
   uniqueCount: number;
   duplicateCount: number;
 }): ImportReport {
-  // TODO: Implement report generation
-  throw new Error('Task 4 not implemented — implement generateReport to pass all tests');
+  const { totalParsed, validCount, invalidCount, uniqueCount, duplicateCount } = stats;
+
+  const summary = [
+    'User Import Report',
+    '==================',
+    `Rows parsed:      ${totalParsed}`,
+    `Valid users:      ${validCount}`,
+    `Invalid users:    ${invalidCount}`,
+    `Unique users:     ${uniqueCount}`,
+    `Duplicate users:  ${duplicateCount}`,
+    `Validation rate:  ${formatRate(validCount, totalParsed)}`,
+    `Uniqueness rate:  ${formatRate(uniqueCount, validCount)}`,
+  ].join('\n');
+
+  return {
+    totalParsed,
+    validCount,
+    invalidCount,
+    uniqueCount,
+    duplicateCount,
+    summary,
+    generatedAt: new Date().toISOString(),
+  };
 }
