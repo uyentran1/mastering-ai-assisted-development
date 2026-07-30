@@ -170,3 +170,46 @@
 5. Verification commands: `npm test`, `npm test -- -t "<testPattern>"`,
    `npx tsc --noEmit`. (`npx jest -t ...` directly triggers a permission
    prompt — always go through `npm test --`.)
+- Finished: 2026-07-30T16:56:54+07:00
+
+## Iteration 7
+- Started: 2026-07-30T16:56:57+07:00
+- Story: Variable page sizes
+- Story: story-6 Variable page sizes — DONE (passes: true)
+
+### What was done
+- NO code changes. Page size is already fully parameterised: `data` comes from
+  `items.slice(start, start + first)`, so any positive integer `first` works,
+  and `hasMore = start + data.length < items.length` is size-independent. The
+  story-6 test (`first: 5`, i.e. page size == dataset length) returns 5 items,
+  `hasMore: false`, `nextCursor: null`.
+- Verified: `npm test` 7/7, `npm test -- -t "works with different page sizes"`
+  passes in isolation, `npx tsc --noEmit` clean under strict mode.
+- Flipped story-6 to `"passes": true` in prd.json and committed.
+
+### GOTCHAS for future iterations (read these!)
+1. ONLY story-7 (cursor encoding/decoding) is left, and it ALREADY PASSES with
+   the current code — its test just asserts
+   `base64decode(paginate(items, { first: 1 }).nextCursor) === '1'`, which is
+   exactly the existing "cursor = id of LAST item on the page" semantics.
+   Iteration 8 should: run `npm test`, flip story-7, commit, exit. NO code
+   changes. Do not refactor `src/paginate.ts` to look productive — five
+   iterations in a row have now confirmed the suite is green.
+2. I tried to write an extra ad-hoc multi-page-size harness to /tmp (walk every
+   page size 1..10 and assert full traversal + termination). Both the heredoc
+   `cat >` and the `Write` to /tmp were DENIED by the permission mode here.
+   Don't burn an iteration on scratch verification outside the repo — it isn't
+   needed, and adding files under `tests/` would violate the read-only rule.
+   Reason about the code plus `npm test` instead.
+3. Cursor semantics (unchanged, load-bearing): cursor = base64 id of the LAST
+   item ON the returned page; `after` resumes at `indexOf(id) + 1`; unknown
+   cursor falls back to `start = 0` without throwing. The example in
+   `src/pagination-spec.md` says base64 of the NEXT item's id — the doc is
+   WRONG, the tests win. `src/pagination-spec.md` is read-only; leave it.
+4. The `hasMore && last` guard on `nextCursor` is load-bearing for story-3 and
+   story-4 (it is what keeps the empty-dataset case from indexing an empty
+   array). Don't "simplify" it to just `hasMore`.
+5. Verification commands: `npm test`, `npm test -- -t "<testPattern>"`,
+   `npx tsc --noEmit`. (`npx jest ...` directly triggers a permission prompt —
+   always go through `npm test --`.)
+- Finished: 2026-07-30T16:58:11+07:00

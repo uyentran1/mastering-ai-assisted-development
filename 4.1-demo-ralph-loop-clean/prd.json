@@ -42,7 +42,7 @@
       "title": "Variable page sizes",
       "description": "Pagination should work correctly with any page size (1, 2, 5, full dataset).",
       "testPattern": "works with different page sizes",
-      "passes": false
+      "passes": true
     },
     {
       "id": "story-7",
