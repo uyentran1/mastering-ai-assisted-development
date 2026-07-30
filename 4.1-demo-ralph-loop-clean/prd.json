@@ -35,7 +35,7 @@
       "title": "Generic type safety",
       "description": "The paginate function should preserve TypeScript generics so callers get type-safe results.",
       "testPattern": "is type-safe",
-      "passes": false
+      "passes": true
     },
     {
       "id": "story-6",

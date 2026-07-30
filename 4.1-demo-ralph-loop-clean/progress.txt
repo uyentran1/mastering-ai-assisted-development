@@ -132,3 +132,41 @@
 4. Verification commands: `npm test`, `npm test -- -t "<testPattern>"`,
    `npx tsc --noEmit`. (`npx jest -t ...` directly triggers a permission
    prompt — always go through `npm test --`.)
+- Finished: 2026-07-30T16:55:59+07:00
+
+## Iteration 6
+- Started: 2026-07-30T16:56:01+07:00
+- Story: Generic type safety
+- Story: story-5 Generic type safety — DONE (passes: true)
+
+### What was done
+- NO code changes. The signature already carries the generic end-to-end:
+  `paginate<T extends { id: string }>(items: T[], ...): PaginationResult<T>`,
+  and `data` comes from `items.slice(...)` so it stays `T[]`. In the test,
+  `const firstName: string = result.data[0].name` type-checks against
+  `TestItem`, which is the real acceptance criterion here.
+- Verified: `npm test` 7/7, `npm test -- -t "is type-safe"` passes in isolation,
+  `npx tsc --noEmit` clean under strict mode.
+- Flipped story-5 to `"passes": true` in prd.json and committed.
+
+### GOTCHAS for future iterations (read these!)
+1. Story-5 is a TYPE-level story: jest transpiles types away, so the runtime
+   test would pass even if the generic were broken (e.g. `data: any[]`). The
+   only check that actually proves it is `npx tsc --noEmit`. Run it, don't rely
+   on a green jest run alone.
+2. Do NOT widen the signature to make anything "simpler" — dropping `<T>`, the
+   `extends { id: string }` constraint, or returning `PaginationResult<unknown>`
+   would keep jest green while silently failing story-5. The constraint is also
+   what makes `item.id` legal in the `findIndex` for `after`.
+3. Fourth confirmation: the suite is FULLY GREEN. Stories 6 (variable page
+   sizes) and 7 (cursor encoding/decoding) need NO code changes. Run
+   `npm test`, flip your story in prd.json, commit, exit. Do not refactor
+   `src/paginate.ts` to look productive.
+4. Cursor semantics (unchanged, load-bearing): cursor = base64 id of the LAST
+   item ON the returned page; `after` resumes at `indexOf(id) + 1`. Story-7's
+   test asserts exactly this (`decoded === '1'` after `first: 1`). The example
+   in `src/pagination-spec.md` says base64 of the NEXT item's id — the doc is
+   WRONG, the tests win. `src/pagination-spec.md` is read-only; leave it.
+5. Verification commands: `npm test`, `npm test -- -t "<testPattern>"`,
+   `npx tsc --noEmit`. (`npx jest -t ...` directly triggers a permission
+   prompt — always go through `npm test --`.)
