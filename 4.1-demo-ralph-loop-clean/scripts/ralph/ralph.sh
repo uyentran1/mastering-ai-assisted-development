@@ -93,6 +93,9 @@ if [[ ! -f "$PROGRESS_FILE" ]]; then
 fi
 
 iteration=0
+prev_remaining=""
+stalled=0
+MAX_STALLED=3
 
 while true; do
   iteration=$((iteration + 1))
@@ -121,6 +124,25 @@ while true; do
   story=$(next_story_title)
   remaining=$(remaining_stories)
 
+  # Stall detection: if the story count never moves, the agent is making no
+  # progress (usually a denied permission or a test it can't fix). Bail out
+  # instead of burning every remaining iteration on the same failure.
+  if [[ "$remaining" == "$prev_remaining" ]]; then
+    stalled=$((stalled + 1))
+    if [[ "$stalled" -ge "$MAX_STALLED" ]]; then
+      echo ""
+      echo "=== STALLED ==="
+      echo "No story completed in $MAX_STALLED consecutive iterations (still $remaining remaining)."
+      echo "Story stuck on: $story"
+      echo "Check the agent output above — a denied tool permission is the usual cause."
+      exit 1
+    fi
+    echo "(no progress in last iteration — $stalled/$MAX_STALLED before aborting)"
+  else
+    stalled=0
+  fi
+  prev_remaining="$remaining"
+
   echo "--- Iteration $iteration / $MAX_ITERATIONS ---"
   echo "Next story: $story"
   echo "Remaining: $remaining stories"
@@ -133,7 +155,9 @@ while true; do
 
   # Build the prompt for this iteration
   # The AI reads CLAUDE.md, prd.json, and progress.txt to understand context
-  PROMPT=$(cat <<EOF
+  # NOTE: uses `read -d ''` rather than PROMPT=$(cat <<EOF ...) because bash 3.2
+  # (the version macOS ships) mis-parses apostrophes in a heredoc inside $( ).
+  IFS= read -r -d '' PROMPT <<EOF || true
 You are an autonomous coding agent running as iteration $iteration of the Ralph loop.
 
 Read the following files to understand your task:
@@ -152,12 +176,23 @@ Your workflow:
 Do NOT stop until the current story's tests pass.
 After completing, exit so the next iteration can start fresh.
 EOF
-)
 
   # Spawn a fresh AI instance
   # Each instance gets a clean context window — this is the key insight
+  #
+  # `--print` is non-interactive, so it cannot show a permission prompt: any tool
+  # needing approval is auto-denied and the agent stalls without editing anything.
+  # Tools must be pre-authorized up front.
+  #
+  # bypassPermissions grants full autonomy. A narrower --allowedTools allowlist
+  # works too, but is brittle here: permissions are checked per-component of a
+  # compound command, so `git add -A && git commit -m ...` is denied unless every
+  # part is listed, and the agent reads that as "git is blocked" and gives up.
+  #
+  # ONLY run this in a disposable repo you can throw away. The agent can run any
+  # command without asking.
   if [[ "$TOOL" == "claude" ]]; then
-    echo "$PROMPT" | claude --print 2>&1 || true
+    echo "$PROMPT" | claude --print --permission-mode bypassPermissions 2>&1 || true
   else
     echo "Unsupported tool: $TOOL"
     exit 1
