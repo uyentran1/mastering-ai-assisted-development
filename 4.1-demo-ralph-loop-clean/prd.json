@@ -7,14 +7,14 @@
       "title": "Basic first-page pagination",
       "description": "Given an array of items and a page size, return the first page with correct data, nextCursor, and hasMore flag.",
       "testPattern": "returns correct data for first page",
-      "passes": false
+      "passes": true
     },
     {
       "id": "story-2",
       "title": "Cursor-based continuation",
       "description": "Given a nextCursor from a previous page, return the correct subsequent page of items.",
       "testPattern": "returns correct nextCursor for subsequent pages",
-      "passes": false
+      "passes": true
     },
     {
       "id": "story-3",
