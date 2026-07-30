@@ -16,7 +16,36 @@
 
 import { User, ValidationResult } from './types';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALID_ROLES: User['role'][] = ['admin', 'editor', 'viewer'];
+
 export function validateUsers(users: Record<string, string>[]): ValidationResult {
-  // TODO: Implement user validation
-  throw new Error('Task 2 not implemented — implement validateUsers to pass all tests');
+  const result: ValidationResult = { valid: [], invalid: [] };
+
+  for (const user of users) {
+    const name = (user.name ?? '').trim();
+    const email = (user.email ?? '').trim();
+    const role = (user.role ?? '').trim();
+    const errors: string[] = [];
+
+    if (name === '') {
+      errors.push('Name is required');
+    }
+
+    if (!EMAIL_PATTERN.test(email)) {
+      errors.push('Invalid email format');
+    }
+
+    if (!VALID_ROLES.includes(role as User['role'])) {
+      errors.push('Role must be one of: admin, editor, viewer');
+    }
+
+    if (errors.length > 0) {
+      result.invalid.push({ user, errors });
+    } else {
+      result.valid.push({ name, email, role: role as User['role'] });
+    }
+  }
+
+  return result;
 }
