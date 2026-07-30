@@ -28,7 +28,7 @@
       "title": "Empty dataset handling",
       "description": "When given an empty array, return an empty result without throwing an error.",
       "testPattern": "handles empty dataset",
-      "passes": false
+      "passes": true
     },
     {
       "id": "story-5",
