@@ -213,3 +213,43 @@
    `npx tsc --noEmit`. (`npx jest ...` directly triggers a permission prompt —
    always go through `npm test --`.)
 - Finished: 2026-07-30T16:58:11+07:00
+- Finished: 2026-07-30T16:58:16+07:00
+
+## Iteration 8
+- Started: 2026-07-30T16:58:18+07:00
+- Story: Cursor encoding/decoding
+- Story: story-7 Cursor encoding/decoding — DONE (passes: true)
+
+### What was done
+- NO code changes. `encodeCursor`/`decodeCursor` already round-trip through
+  `Buffer.from(id).toString('base64')` / `Buffer.from(cursor, 'base64')
+  .toString()`. The story-7 test does
+  `Buffer.from(paginate(items, { first: 1 }).nextCursor!, 'base64').toString()`
+  and expects `'1'` — the id of the LAST item on the page — which is exactly the
+  existing semantics. Decoding is exercised end-to-end by story-2/3, which walk
+  three pages via `after`.
+- Verified: `npm test` 7/7, `npm test -- -t "cursor decodes correctly"` passes
+  in isolation, `npx tsc --noEmit` clean under strict mode.
+- Flipped story-7 to `"passes": true` in prd.json and committed.
+
+### GOTCHAS for future iterations (read these!)
+1. **ALL 7 STORIES NOW PASS — the PRD is complete.** If a further iteration
+   starts, there is no story with `"passes": false`. The correct action is to
+   run `npm test` to confirm 7/7 and EXIT. Do not invent new stories, do not
+   refactor `src/paginate.ts`, do not touch `tests/` or
+   `src/pagination-spec.md`. Six iterations in a row confirmed the suite green;
+   the only remaining risk to this repo is a well-meaning rewrite.
+2. Cursor semantics (final, load-bearing): cursor = base64 id of the LAST item
+   ON the returned page; `after` resumes at `indexOf(id) + 1`; an unknown or
+   malformed cursor falls back to `start = 0` without throwing. The worked
+   example in `src/pagination-spec.md` says base64 of the NEXT item's id — the
+   DOC IS WRONG and the tests win. The doc is read-only; leave it alone.
+3. The `hasMore && last` guard on `nextCursor` is load-bearing for story-3 and
+   story-4 (it keeps the empty-dataset case from indexing an empty array).
+   Don't "simplify" it to just `hasMore`.
+4. Story-5 is type-level only — jest transpiles types away, so `npx tsc
+   --noEmit` is the only check that actually proves the generic survives.
+5. Verification commands: `npm test`, `npm test -- -t "<testPattern>"`,
+   `npx tsc --noEmit`. (`npx jest ...` directly triggers a permission prompt —
+   always go through `npm test --`.) Writing scratch files outside the repo
+   (e.g. /tmp) is DENIED by this permission mode; don't bother.

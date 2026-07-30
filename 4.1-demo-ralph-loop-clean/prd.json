@@ -49,7 +49,7 @@
       "title": "Cursor encoding/decoding",
       "description": "Cursors should be base64-encoded item IDs that decode correctly for continuation.",
       "testPattern": "cursor decodes correctly",
-      "passes": false
+      "passes": true
     }
   ]
 }
