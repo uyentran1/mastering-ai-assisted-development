@@ -21,7 +21,7 @@
       "title": "Last page detection",
       "description": "When the final page of items is returned, hasMore should be false and nextCursor should be null.",
       "testPattern": "returns hasMore: false on last page",
-      "passes": false
+      "passes": true
     },
     {
       "id": "story-4",
