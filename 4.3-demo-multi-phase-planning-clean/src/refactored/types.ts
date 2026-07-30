@@ -41,6 +41,22 @@ export interface ServiceResult<T> {
   error: AppError | null;
 }
 
+/**
+ * Runs a unit of business logic and normalises the outcome into a
+ * ServiceResult. Expected failures (AppError) become `error`; anything else is
+ * an unexpected fault and propagates so the route layer can report a 500.
+ */
+export async function runService<T>(work: () => Promise<T> | T): Promise<ServiceResult<T>> {
+  try {
+    return { data: await work(), error: null };
+  } catch (error) {
+    if (error instanceof AppError) {
+      return { data: null, error };
+    }
+    throw error;
+  }
+}
+
 // ============================================
 // Domain objects
 // ============================================
