@@ -15,6 +15,22 @@
 import { User, DeduplicationResult } from './types';
 
 export function deduplicateUsers(users: User[]): DeduplicationResult {
-  // TODO: Implement deduplication
-  throw new Error('Task 3 not implemented — implement deduplicateUsers to pass all tests');
+  // Index of the last occurrence of each email, compared case-insensitively.
+  const lastIndexByEmail = new Map<string, number>();
+  users.forEach((user, i) => {
+    lastIndexByEmail.set(user.email.toLowerCase(), i);
+  });
+
+  const unique: User[] = [];
+  const duplicates: User[] = [];
+
+  users.forEach((user, i) => {
+    if (lastIndexByEmail.get(user.email.toLowerCase()) === i) {
+      unique.push(user);
+    } else {
+      duplicates.push(user);
+    }
+  });
+
+  return { unique, duplicates };
 }
