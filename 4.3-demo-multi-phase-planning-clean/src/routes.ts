@@ -1,261 +1,41 @@
 /**
- * Before State: Monolithic Routes with Mixed Concerns
+ * API composition root.
  *
- * This file contains all route handlers mixed with:
- * - Business logic
- * - Validation
- * - Database access
+ * All handling now lives in the layered architecture under src/refactored/:
  *
- * This is the starting point for the multi-phase refactor demo.
- * The agent will break this apart into:
- * - src/refactored/routes/ (thin HTTP handlers)
- * - src/refactored/services/ (business logic)
- * - src/refactored/repositories/ (data access)
- */
-
-import express, { Request, Response } from 'express';
-
-const router = express.Router();
-
-// Fake in-memory database
-const users: any[] = [];
-const orders: any[] = [];
-
-// ============================================
-// User Routes
-// ============================================
-
-/**
- * GET /users — List all users
+ *   routes → services → repositories → types
  *
- * This handler does:
- * - Direct database access
- * - Response formatting
- * - Error handling
+ * This file's only job is wiring: build the repositories, inject them into the
+ * services, inject those into the routers, and mount the result. The endpoints
+ * and response shapes are unchanged from the monolithic version this replaced.
  */
-router.get('/users', (req: Request, res: Response) => {
-  try {
-    res.json({ data: users });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
+
+import express from 'express';
+import { InMemoryOrderRepository } from './refactored/repositories/order-repository';
+import { InMemoryUserRepository } from './refactored/repositories/user-repository';
+import { createOrderRoutes } from './refactored/routes/order-routes';
+import { createUserRoutes } from './refactored/routes/user-routes';
+import { OrderService } from './refactored/services/order-service';
+import { UserService } from './refactored/services/user-service';
 
 /**
- * GET /users/:id — Get a specific user
+ * Builds a router over its own fresh repositories.
  *
- * This handler mixes:
- * - Validation (checking if id exists)
- * - Database lookup
- * - HTTP response formatting
- * - Error handling
+ * Exported so callers that need an isolated store — tests, most obviously —
+ * can get one without reaching into module state.
  */
-router.get('/users/:id', (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-    const user = users.find(u => u.id === id);
-    if (!user) {
-      return res.status(404).json({ error: `User ${id} not found` });
-    }
-    res.json({ data: user });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch user' });
-  }
-});
+export function createApiRouter(): express.Router {
+  const userRepository = new InMemoryUserRepository();
+  const orderRepository = new InMemoryOrderRepository();
 
-/**
- * POST /users — Create a new user
- *
- * This handler contains:
- * - Request parsing
- * - Validation logic (email format, name required)
- * - Database insertion
- * - Error handling (validation vs DB vs network errors all mixed)
- *
- * Problem: Validation logic is inline and hard to test
- */
-router.post('/users', (req: Request, res: Response) => {
-  try {
-    const { name, email } = req.body;
+  const userService = new UserService(userRepository);
+  const orderService = new OrderService(orderRepository, userRepository);
 
-    // Validation scattered in handler
-    if (!name || name.trim() === '') {
-      return res.status(400).json({ error: 'Name is required' });
-    }
-    if (!email || email.trim() === '') {
-      return res.status(400).json({ error: 'Email is required' });
-    }
+  const router = express.Router();
+  router.use(createUserRoutes(userService));
+  router.use(createOrderRoutes(orderService));
+  return router;
+}
 
-    // Simple email regex (should be in a validator)
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-
-    // Check for duplicate email
-    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
-
-    // Create user (direct DB access)
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name: name.trim(),
-      email: email.trim(),
-      created_at: new Date().toISOString(),
-    };
-    users.push(newUser);
-
-    res.status(201).json({ data: newUser });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create user' });
-  }
-});
-
-/**
- * PUT /users/:id — Update a user
- */
-router.put('/users/:id', (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { name, email } = req.body;
-
-    if (!id) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const user = users.find(u => u.id === id);
-    if (!user) {
-      return res.status(404).json({ error: `User ${id} not found` });
-    }
-
-    if (name && name.trim() !== '') {
-      user.name = name.trim();
-    }
-
-    if (email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: 'Invalid email format' });
-      }
-      if (users.some(u => u.id !== id && u.email.toLowerCase() === email.toLowerCase())) {
-        return res.status(400).json({ error: 'Email already exists' });
-      }
-      user.email = email.trim();
-    }
-
-    user.updated_at = new Date().toISOString();
-    res.json({ data: user });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update user' });
-  }
-});
-
-/**
- * DELETE /users/:id — Delete a user
- */
-router.delete('/users/:id', (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const index = users.findIndex(u => u.id === id);
-    if (index === -1) {
-      return res.status(404).json({ error: `User ${id} not found` });
-    }
-
-    users.splice(index, 1);
-    res.json({ data: { success: true } });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete user' });
-  }
-});
-
-// ============================================
-// Order Routes
-// ============================================
-
-/**
- * GET /orders — List all orders
- */
-router.get('/orders', (req: Request, res: Response) => {
-  try {
-    res.json({ data: orders });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch orders' });
-  }
-});
-
-/**
- * POST /orders — Create a new order
- *
- * Problem: This handler does:
- * - Validation (user must exist)
- * - Business logic (calculating order total)
- * - Database access (creating order, updating user)
- * - All mixed together in one function
- */
-router.post('/orders', (req: Request, res: Response) => {
-  try {
-    const { userId, items } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'Items are required' });
-    }
-
-    const user = users.find(u => u.id === userId);
-    if (!user) {
-      return res.status(404).json({ error: `User ${userId} not found` });
-    }
-
-    // Calculate total (business logic mixed in route handler)
-    const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-    if (total <= 0) {
-      return res.status(400).json({ error: 'Order total must be greater than 0' });
-    }
-
-    const newOrder = {
-      id: `order-${Date.now()}`,
-      user_id: userId,
-      items,
-      total,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-    };
-    orders.push(newOrder);
-
-    // Update user (side effect, hard to test)
-    user.order_count = (user.order_count || 0) + 1;
-
-    res.status(201).json({ data: newOrder });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create order' });
-  }
-});
-
-/**
- * GET /orders/:id — Get a specific order
- */
-router.get('/orders/:id', (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const order = orders.find(o => o.id === id);
-    if (!order) {
-      return res.status(404).json({ error: `Order ${id} not found` });
-    }
-    res.json({ data: order });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch order' });
-  }
-});
-
-export default router;
+/** The application's router. */
+export default createApiRouter();
