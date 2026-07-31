@@ -13,6 +13,7 @@ import { Express } from 'express';
 import { Server } from 'http';
 import { AddressInfo } from 'net';
 import { createApp } from '../src/server';
+import { devHeaderAuth } from '../src/invitations/auth';
 import { InvitationService } from '../src/invitations/service';
 import { InvitationRepository, UserRepository } from '../src/invitations/repository';
 
@@ -26,7 +27,7 @@ describe('invitations routes', () => {
     // than re-assembling the wiring here, so these tests fail if
     // src/server.ts ever stops mounting the router correctly.
     const service = new InvitationService(new InvitationRepository(), new UserRepository());
-    app = createApp(service);
+    app = createApp(service, { auth: devHeaderAuth() });
 
     await new Promise<void>((resolve) => {
       server = app.listen(0, () => resolve());
@@ -55,11 +56,16 @@ describe('invitations routes', () => {
     return { status: res.status, json };
   }
 
-  async function get(path: string): Promise<{ status: number; json: any }> {
-    const res = await fetch(`${baseUrl}${path}`);
+  async function get(
+    path: string,
+    headers: Record<string, string> = {}
+  ): Promise<{ status: number; json: any }> {
+    const res = await fetch(`${baseUrl}${path}`, { headers });
     const json = await res.json();
     return { status: res.status, json };
   }
+
+  const ADMIN_HEADERS = { 'x-user-id': 'admin-1', 'x-user-roles': 'admin' };
 
   async function createInvitation(
     email: string,
@@ -253,7 +259,7 @@ describe('invitations routes', () => {
     it('returns 200 with pending invitations and never includes a token field', async () => {
       await createInvitation('pending-list@example.com', 'creator-11');
 
-      const { status, json } = await get('/invitations/pending');
+      const { status, json } = await get('/invitations/pending', ADMIN_HEADERS);
       expect(status).toBe(200);
       expect(Array.isArray(json)).toBe(true);
 
@@ -269,6 +275,60 @@ describe('invitations routes', () => {
 
       const serialized = JSON.stringify(json);
       expect(serialized).not.toMatch(/"token"/);
+    });
+
+    it('returns 401 without an authenticated caller', async () => {
+      const { status, json } = await get('/invitations/pending');
+      expect(status).toBe(401);
+      expect(json.error.code).toBe('UNAUTHENTICATED');
+    });
+
+    it('returns 403 for an authenticated non-admin', async () => {
+      const { status, json } = await get('/invitations/pending', { 'x-user-id': 'regular-1' });
+      expect(status).toBe(403);
+      expect(json.error.code).toBe('FORBIDDEN');
+    });
+
+    it('does not leak invitation emails in the 403 body', async () => {
+      await createInvitation('secret-invitee@example.com', 'creator-12');
+      const { json } = await get('/invitations/pending', { 'x-user-id': 'regular-2' });
+      expect(JSON.stringify(json)).not.toContain('secret-invitee@example.com');
+    });
+  });
+
+  describe('authentication', () => {
+    it('rejects invitation creation with no authenticated caller', async () => {
+      const res = await post('/invitations', { email: 'unauth@example.com' });
+      expect(res.status).toBe(401);
+      expect(res.json.error.code).toBe('UNAUTHENTICATED');
+    });
+
+    it('does not create an invitation when unauthenticated', async () => {
+      await post('/invitations', { email: 'never-created@example.com' });
+
+      const { json } = await get('/invitations/pending', ADMIN_HEADERS);
+      const match = json.find((inv: { email: string }) => inv.email === 'never-created@example.com');
+      expect(match).toBeUndefined();
+    });
+
+    it('attributes the invitation to the authenticated caller, not a placeholder', async () => {
+      await createInvitation('attributed@example.com', 'creator-13');
+
+      const { json } = await get('/invitations/pending', ADMIN_HEADERS);
+      const match = json.find((inv: { email: string }) => inv.email === 'attributed@example.com');
+      expect(match.createdBy).toBe('creator-13');
+      expect(match.createdBy).not.toBe('system');
+    });
+
+    it('still allows redemption without authentication', async () => {
+      const { json: created } = await createInvitation('open-redeem@example.com', 'creator-14');
+      const token = created.token as string;
+
+      const { status } = await post(`/invitations/${token}/redeem`, {
+        name: 'Open Redeemer',
+        password: 'Sup3rSecret',
+      });
+      expect(status).toBe(200);
     });
   });
 });
