@@ -2,35 +2,55 @@
 
 ## Task Assignments
 
-### Agent A: Form Components
-- [ ] Button component (with variants: primary, secondary, danger, disabled)
-- [ ] Input component (with label, placeholder, validation states)
-- [ ] Select component (with options, multi-select variant)
+Six components, two per teammate. Each teammate writes the tests for the
+components they own — a test-only agent would have to wait on everyone else,
+and file ownership is what keeps three parallel agents from colliding.
+
+### Teammate A: Button + Input
+- [ ] Button component (variants: primary, secondary, danger; loading, disabled)
+- [ ] Input component (label, placeholder, validation states)
+- [ ] Unit tests for both
+
+**Owns**: `src/components/{Button,Input}.tsx`, `tests/{Button,Input}.test.tsx`
 
 **Expected Commits**:
 - feat: Button component with primary/secondary/danger variants
 - feat: Input component with validation support
-- feat: Select component with multi-select variant
 
-### Agent B: Dialog Components
-- [ ] Modal component (header, body, footer, close button)
+### Teammate B: Select + Dropdown
+- [ ] Select component (options, multi-select variant, keyboard navigation)
+- [ ] Dropdown component (keyboard navigation and focus management)
+- [ ] Unit tests for both
+
+**Owns**: `src/components/{Select,Dropdown}.tsx`, `tests/{Select,Dropdown}.test.tsx`
+
+Grouped together because both are listbox/menu widgets sharing roving-focus
+keyboard behaviour — one owner keeps that behaviour consistent.
+
+**Expected Commits**:
+- feat: Select component with multi-select variant
+- feat: Dropdown component with keyboard navigation
+
+### Teammate C: Modal + Toast
+- [ ] Modal component (header, body, footer, close button, focus trap)
 - [ ] Toast/Alert component (success, error, warning, info variants)
-- [ ] Dropdown component (with keyboard navigation and focus management)
+- [ ] Unit tests for both
+
+**Owns**: `src/components/{Modal,Toast}.tsx`, `tests/{Modal,Toast}.test.tsx`
 
 **Expected Commits**:
 - feat: Modal component with header/footer support
 - feat: Toast/Alert component with multiple variants
-- feat: Dropdown component with keyboard navigation
 
-### Agent C: Testing & Documentation
-- [ ] Unit tests for all components (target 85%+ coverage)
-- [ ] Storybook/example files for all components
-- [ ] Update README.md with usage examples and API reference
+### Team Lead: Shared contract, barrel, docs
+- [x] `src/types/index.ts` — the shared API contract
+- [x] `src/utils/cn.ts` — className helper (`clsx` is not installed)
+- [x] `tests/setup.ts` — required by `jest.config.js`, was missing
+- [ ] `src/index.ts` — barrel export (after components land)
+- [ ] README usage examples and API reference
 
-**Expected Commits**:
-- test: unit tests for form components (Button, Input, Select)
-- test: unit tests for dialog components (Modal, Toast, Dropdown)
-- docs: Storybook stories and README examples
+**Owns**: everything above, plus `TASKS.md`, `package.json`, `tsconfig.json`,
+`jest.config.js`. Teammates request changes here rather than editing.
 
 ---
 
@@ -75,21 +95,41 @@
 ---
 
 ## Completed
-- [x] Project setup (TypeScript, Jest, Tailwind, React)
+- [x] Project setup (TypeScript, Jest, React)
 - [x] Created directory structure (src/components, tests/)
-- [x] Created shared type definitions (types/index.ts)
+- [x] Created shared type definitions (`src/types/index.ts`)
+- [x] Added `src/utils/cn.ts` and `tests/setup.ts`
 
 ---
 
-## In Progress (Starting Now)
-- [ ] **Agent A**: Form components (Button, Input, Select)
-- [ ] **Agent B**: Dialog components (Modal, Toast, Dropdown)
-- [ ] **Agent C**: Tests and documentation for all
+## In Progress
+- [ ] **Teammate A**: Button, Input (+ tests)
+- [ ] **Teammate B**: Select, Dropdown (+ tests)
+- [ ] **Teammate C**: Modal, Toast (+ tests)
+- [ ] **Lead**: barrel export, README, commits
 
 ---
 
 ## Blocked/Issues
-(None yet — all agents can start immediately)
+
+Resolved before the team started:
+
+- **`src/types/index.ts` did not exist** despite being checked off as complete.
+  It is the contract the whole team builds against, so the lead wrote it first.
+  It now covers all six components' props and compiles clean under strict mode.
+- **`tests/setup.ts` did not exist** but `jest.config.js:7` references it via
+  `setupFilesAfterEnv` — every test run would have failed before reaching a
+  component. Created.
+- **`clsx` is not installed** and neither is Tailwind's toolchain. TASKS.md
+  allows "clsx or similar", so `src/utils/cn.ts` provides a dependency-free
+  equivalent. Tailwind class names are written as normal but are not compiled
+  in this repo — styling is not visually verifiable here.
+
+Open, for the lead to decide:
+
+- `npm run build` is bare `tsc` with no `outDir` and `include: ["src","tests"]`,
+  so a build emits `.js` next to every source file *and* compiles the tests into
+  the package. Left as-is — restructuring the build is outside this task.
 
 ---
 
