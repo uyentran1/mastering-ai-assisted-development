@@ -109,7 +109,7 @@ describe('InvitationService', () => {
         fail('expected throw');
       } catch (err) {
         expect(err).toBeInstanceOf(InvitationError);
-        expect((err as InvitationError).code).toBe('EMAIL_EXISTS');
+        expect((err as InvitationError).code).toBe('PENDING_INVITATION');
       }
     });
 
@@ -121,7 +121,10 @@ describe('InvitationService', () => {
         fail('expected throw');
       } catch (err) {
         expect(err).toBeInstanceOf(InvitationError);
-        expect((err as InvitationError).code).toBe('EMAIL_EXISTS');
+        // Distinct from EMAIL_EXISTS: the address is not registered, it
+        // just has an invite outstanding.
+        expect((err as InvitationError).code).toBe('PENDING_INVITATION');
+        expect((err as InvitationError).message).not.toMatch(/already registered/);
       }
     });
 

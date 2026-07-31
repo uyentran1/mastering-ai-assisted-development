@@ -102,11 +102,11 @@ describe('invitations routes', () => {
       expect(json.error.code).toBe('INVALID_EMAIL');
     });
 
-    it('returns 400 EMAIL_EXISTS when the email already has a pending invitation', async () => {
+    it('returns 400 PENDING_INVITATION when the email already has a pending invitation', async () => {
       await createInvitation('bob@example.com', 'creator-4');
       const { status, json } = await createInvitation('bob@example.com', 'creator-4');
       expect(status).toBe(400);
-      expect(json.error.code).toBe('EMAIL_EXISTS');
+      expect(json.error.code).toBe('PENDING_INVITATION');
     });
 
     it('returns 429 RATE_LIMITED on the 6th pending invitation from the same user', async () => {

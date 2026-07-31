@@ -17,10 +17,18 @@ export const DEFAULT_EXPIRY_DAYS = 7;
 /** Max number of concurrently-pending invitations a single user may hold. */
 export const MAX_PENDING_INVITATIONS_PER_USER = 5;
 
-/** Known error codes the API layer can map to HTTP statuses. */
+/**
+ * Known error codes the API layer can map to HTTP statuses.
+ *
+ * PENDING_INVITATION and INVALID_NAME are not in the spec's Error Cases
+ * table: the spec requires both rules (no duplicate pending invite, name
+ * must be non-empty) but names no code for either, so we define one in
+ * the same style as the rest.
+ */
 export type InvitationErrorCode =
   | 'INVALID_EMAIL'
   | 'EMAIL_EXISTS'
+  | 'PENDING_INVITATION'
   | 'RATE_LIMITED'
   | 'TOKEN_NOT_FOUND'
   | 'TOKEN_EXPIRED'
@@ -32,6 +40,7 @@ export type InvitationErrorCode =
 const ERROR_STATUS: Record<InvitationErrorCode, number> = {
   INVALID_EMAIL: 400,
   EMAIL_EXISTS: 400,
+  PENDING_INVITATION: 400,
   RATE_LIMITED: 429,
   TOKEN_NOT_FOUND: 404,
   TOKEN_EXPIRED: 400,
@@ -125,7 +134,10 @@ export class InvitationService {
     }
 
     if (this.invitations.findPendingByEmail(email)) {
-      throw new InvitationError('EMAIL_EXISTS', 'Email is already registered');
+      throw new InvitationError(
+        'PENDING_INVITATION',
+        'An invitation for this email is already pending'
+      );
     }
 
     const pendingForUser = this.invitations.findPendingByUser(createdByUserId);
