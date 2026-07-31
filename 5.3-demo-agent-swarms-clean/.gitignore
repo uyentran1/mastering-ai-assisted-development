@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+
+# `npm run build` is bare `tsc` with no outDir, so it emits next to sources.
+src/**/*.js
+src/**/*.d.ts
+src/**/*.js.map
+tests/**/*.js
+tests/**/*.d.ts
+tests/**/*.js.map
+dist/
