@@ -3,16 +3,16 @@
  *
  * Supertest is not installed, so we spin up a real HTTP server on an
  * ephemeral port (`app.listen(0)`) and exercise it with the global
- * `fetch` (available in Node >= 18). The router is built against a
- * fresh InvitationService backed by fresh in-memory repositories, so
- * this suite never shares state with tests/service.test.ts or
- * tests/repository.test.ts.
+ * `fetch` (available in Node >= 18). The app comes from src/server.ts's
+ * createApp, built against a fresh InvitationService backed by fresh
+ * in-memory repositories, so this suite never shares state with
+ * tests/service.test.ts or tests/repository.test.ts.
  */
 
-import express, { Express } from 'express';
+import { Express } from 'express';
 import { Server } from 'http';
 import { AddressInfo } from 'net';
-import { createInvitationRouter } from '../src/invitations/routes';
+import { createApp } from '../src/server';
 import { InvitationService } from '../src/invitations/service';
 import { InvitationRepository, UserRepository } from '../src/invitations/repository';
 
@@ -22,10 +22,11 @@ describe('invitations routes', () => {
   let baseUrl: string;
 
   beforeAll(async () => {
+    // Build the real app (json middleware, health check, router) rather
+    // than re-assembling the wiring here, so these tests fail if
+    // src/server.ts ever stops mounting the router correctly.
     const service = new InvitationService(new InvitationRepository(), new UserRepository());
-    app = express();
-    app.use(express.json());
-    app.use(createInvitationRouter(service));
+    app = createApp(service);
 
     await new Promise<void>((resolve) => {
       server = app.listen(0, () => resolve());
@@ -117,6 +118,14 @@ describe('invitations routes', () => {
       const { status, json } = await createInvitation('rate-user-6@example.com', userId);
       expect(status).toBe(429);
       expect(json.error.code).toBe('RATE_LIMITED');
+    });
+  });
+
+  describe('GET /health', () => {
+    it('reports ok', async () => {
+      const { status, json } = await get('/health');
+      expect(status).toBe(200);
+      expect(json).toEqual({ status: 'ok' });
     });
   });
 
