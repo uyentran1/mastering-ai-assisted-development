@@ -42,6 +42,19 @@ function generateId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * Canonical key for email indexes. Email local parts are technically
+ * case-sensitive per RFC 5321, but no real provider treats them that way,
+ * and treating "Alice@example.com" as distinct from "alice@example.com"
+ * would let a caller bypass the duplicate-invitation and
+ * already-registered checks just by changing case. Indexes are keyed on
+ * this form; stored records keep the original casing the caller supplied,
+ * the same way a case-insensitive database index behaves.
+ */
+function emailKey(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export class InvitationRepository {
   private byId: Map<string, Invitation> = new Map();
   private tokenIndex: Map<string, string> = new Map(); // token -> id
@@ -63,9 +76,10 @@ export class InvitationRepository {
     this.byId.set(invitation.id, invitation);
     this.tokenIndex.set(invitation.token, invitation.id);
 
-    const emailSet = this.emailIndex.get(invitation.email) ?? new Set<string>();
+    const key = emailKey(invitation.email);
+    const emailSet = this.emailIndex.get(key) ?? new Set<string>();
     emailSet.add(invitation.id);
-    this.emailIndex.set(invitation.email, emailSet);
+    this.emailIndex.set(key, emailSet);
 
     return { ...invitation };
   }
@@ -82,7 +96,7 @@ export class InvitationRepository {
   }
 
   findByEmail(email: string): Invitation[] {
-    const ids = this.emailIndex.get(email);
+    const ids = this.emailIndex.get(emailKey(email));
     if (!ids) return [];
     return Array.from(ids)
       .map((id) => this.byId.get(id))
@@ -160,11 +174,12 @@ export class InvitationRepository {
     }
 
     // Keep the email index in sync if the email changed.
-    if (patch.email && patch.email !== existing.email) {
-      this.emailIndex.get(existing.email)?.delete(id);
-      const newSet = this.emailIndex.get(updated.email) ?? new Set<string>();
+    if (patch.email && emailKey(patch.email) !== emailKey(existing.email)) {
+      this.emailIndex.get(emailKey(existing.email))?.delete(id);
+      const newKey = emailKey(updated.email);
+      const newSet = this.emailIndex.get(newKey) ?? new Set<string>();
       newSet.add(id);
-      this.emailIndex.set(updated.email, newSet);
+      this.emailIndex.set(newKey, newSet);
     }
 
     this.byId.set(id, updated);
@@ -181,7 +196,7 @@ export class InvitationRepository {
 
     this.byId.delete(id);
     this.tokenIndex.delete(existing.token);
-    this.emailIndex.get(existing.email)?.delete(id);
+    this.emailIndex.get(emailKey(existing.email))?.delete(id);
 
     return true;
   }
@@ -211,7 +226,7 @@ export class UserRepository {
    * Creates a new user. Throws if the email is already registered.
    */
   create(data: CreateUserInput): User {
-    if (this.emailIndex.has(data.email)) {
+    if (this.emailIndex.has(emailKey(data.email))) {
       throw new Error(`User with email already exists`);
     }
 
@@ -228,13 +243,13 @@ export class UserRepository {
     }
 
     this.byId.set(user.id, user);
-    this.emailIndex.set(user.email, user.id);
+    this.emailIndex.set(emailKey(user.email), user.id);
 
     return { ...user };
   }
 
   findByEmail(email: string): User | null {
-    const id = this.emailIndex.get(email);
+    const id = this.emailIndex.get(emailKey(email));
     if (!id) return null;
     return this.findById(id);
   }

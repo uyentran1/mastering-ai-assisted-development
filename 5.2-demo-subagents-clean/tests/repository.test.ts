@@ -99,6 +99,14 @@ describe('InvitationRepository', () => {
     it('returns an empty array when none found', () => {
       expect(repo.findByEmail('nobody@example.com')).toEqual([]);
     });
+
+    it('matches case-insensitively while preserving the stored casing', () => {
+      repo.create(makeInvitation({ id: 'ci', token: 'tci', email: 'Mixed.Case@Example.com' }));
+
+      expect(repo.findByEmail('mixed.case@example.com')).toHaveLength(1);
+      expect(repo.findByEmail('MIXED.CASE@EXAMPLE.COM')).toHaveLength(1);
+      expect(repo.findByEmail('Mixed.Case@Example.com')[0].email).toBe('Mixed.Case@Example.com');
+    });
   });
 
   describe('findPendingByEmail', () => {
@@ -327,6 +335,19 @@ describe('UserRepository', () => {
 
     it('returns null when not found', () => {
       expect(repo.findByEmail('nobody@example.com')).toBeNull();
+    });
+
+    it('matches case-insensitively', () => {
+      const user = repo.create({ email: 'Grace@Example.com', name: 'Grace', password_hash: 'x' });
+      expect(repo.findByEmail('grace@example.com')).toEqual(user);
+      expect(repo.findByEmail('GRACE@EXAMPLE.COM')).toEqual(user);
+    });
+
+    it('rejects a duplicate registration that differs only by case', () => {
+      repo.create({ email: 'heidi@example.com', name: 'Heidi', password_hash: 'x' });
+      expect(() =>
+        repo.create({ email: 'Heidi@Example.com', name: 'Heidi Again', password_hash: 'y' })
+      ).toThrow(/already exists/);
     });
   });
 

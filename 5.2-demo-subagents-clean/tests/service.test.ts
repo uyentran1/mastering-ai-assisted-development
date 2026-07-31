@@ -89,6 +89,30 @@ describe('InvitationService', () => {
       }
     });
 
+    it('rejects an already-registered email regardless of case', () => {
+      userRepo.create({ email: 'Taken@Example.com', name: 'Taken', password_hash: 'x' });
+
+      try {
+        service.createInvitation('taken@example.com', 'user_1');
+        fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(InvitationError);
+        expect((err as InvitationError).code).toBe('EMAIL_EXISTS');
+      }
+    });
+
+    it('rejects a duplicate pending invitation that differs only by case', () => {
+      service.createInvitation('casedup@example.com', 'user_1');
+
+      try {
+        service.createInvitation('CaseDup@Example.com', 'user_2');
+        fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(InvitationError);
+        expect((err as InvitationError).code).toBe('EMAIL_EXISTS');
+      }
+    });
+
     it('rejects duplicate pending invitation for the same email', () => {
       service.createInvitation('dup@example.com', 'user_1');
 
