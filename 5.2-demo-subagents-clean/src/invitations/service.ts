@@ -133,7 +133,10 @@ export class InvitationService {
       throw new InvitationError('RATE_LIMITED', 'Too many invitations sent');
     }
 
-    const token = crypto.randomBytes(32).toString('base64');
+    // base64url, not base64: the token is carried in a URL path segment
+    // (POST /invitations/:token/redeem), and plain base64's `/` and `+`
+    // would break path matching in an emailed invitation link.
+    const token = crypto.randomBytes(32).toString('base64url');
     const now = new Date();
     const createdAt = now.toISOString();
     const expiresAt = new Date(now.getTime() + DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();

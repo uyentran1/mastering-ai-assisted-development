@@ -40,10 +40,20 @@ describe('InvitationService', () => {
       expect(stored?.created_by_user_id).toBe('user_1');
     });
 
-    it('produces a 32-byte base64 token', () => {
+    it('produces a 32-byte base64url token', () => {
       const result = service.createInvitation('bob@example.com', 'user_1');
-      const decoded = Buffer.from(result.token, 'base64');
+      const decoded = Buffer.from(result.token, 'base64url');
       expect(decoded.length).toBe(32);
+    });
+
+    it('produces tokens that are safe to embed raw in a URL path', () => {
+      // Regression guard: plain base64 tokens contain `/` roughly half the
+      // time, which silently breaks the redeem route for emailed links.
+      for (let i = 0; i < 200; i++) {
+        const result = service.createInvitation(`urlsafe${i}@example.com`, `creator_${i}`);
+        expect(result.token).toMatch(/^[A-Za-z0-9_-]+$/);
+        expect(encodeURIComponent(result.token)).toBe(result.token);
+      }
     });
 
     it('produces unique tokens across calls', () => {
