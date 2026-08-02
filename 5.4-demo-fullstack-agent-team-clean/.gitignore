@@ -1,0 +1,2 @@
+# Build output: `tsc` emits dist/api + dist/frontend, `vite build` emits dist/web
+dist/
